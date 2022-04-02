@@ -15,6 +15,8 @@ library(mice)
 library(dplyr)
 library(knitr)
 library(kableExtra)
+library(JointAI)
+
 load("dataex2.Rdata")
 load("dataex4.Rdata")
 load("NHANES2.Rdata")
@@ -51,6 +53,8 @@ kable(pool1$pooled[,c(1,3,7,8,10)], caption="Imputation with seed=1") %>%
 ## c)
 (4 marks) Repeat the analysis for $\texttt{seed} \in \{2,3,4,5,6\}$. Do the conclusions remain the same?
 
+### **Answer** :
+
 ```{r}
 pool2 <- pool(with(mice(nhanes, printFlag = F, seed = 2), lm(bmi ~ age + hyp + chl)))
 pool3 <- pool(with(mice(nhanes, printFlag = F, seed = 3), lm(bmi ~ age + hyp + chl)))
@@ -68,10 +72,10 @@ kable(df, caption="Imputation with seed=2,3,4,5,6") %>%
 
 \newpage
 
-### **Answer** :
-
 ## d)
 (4 marks) Repeat the analysis with $M = 100$ with the same seeds. Would you prefer these analyses over those with $M = 5$? Explain why.
+
+### **Answer** :
 
 ```{r}
 pool1 <- pool(with(mice(nhanes, m = 100, printFlag = F, seed = 1), 
@@ -106,6 +110,8 @@ The pooled estimates is more stable when the value of $M$ is higher. Thus, we wo
 in the following way 
 $$y_i|x_i\overset{\text{ind.}}{\sim} \text{N}(\beta_0+\beta_1x_i,1), \quad x_i\overset{\text{ind.}}{\sim}\text{Unif}(-1,1), \quad \beta_0=1, \quad \beta_1=3$$
 for $i = 1, \dots, 100$. Additionally, some of the responses were set to be missing using a MAR mechanism. The goal of this exercise is to study the effect that acknowledging/not acknowledging parameter uncertainty when performing step $1$ of multiple imputation might have on the coverage of the corresponding confidence intervals. Further suppose that the analysis of interest in step $2$ is to fit the regression model that was used to generate the data, i.e., a normal linear regression model where the response is $y$ and the covariate is $x$. With the aid of the \texttt{mice} package, calculate the empirical coverage probability of the $95\%$ confidence intervals for $\beta_1$ under the following two approaches: stochastic regression imputation and the corresponding bootstrap based version. Comment. For both approaches, please consider $m = 20$ and \texttt{seed=1}. \textbf{NOTE 1:} In order to calculate the empirical coverage probability, you only need to compute the proportion of the time (over the 100 intervals) that the interval contains the true value of the parameter. \textbf{NOTE 2:} The data are stored in an array structure such that, for instance, \texttt{dataex2[, , 1]}, corresponds to the first dataset (which has $100$ rows and $2$ columns, with the first column containing the values of $x$ and the second the values of $y$).
+
+### **Answer** :
 
 ```{r}
 # initialize a counter
@@ -304,5 +310,26 @@ Using multiple imputation and conducting all necessary checks, report your findi
 
 ```{r}
 nhanes2 <- NHANES2
+md_pattern(nhanes2, pattern = FALSE, color = c('#34111b', '#e30f41'))
 ```
 
+```{r}
+par(mar = c(3,3,2,1), mgp = c(2,0.6,0))
+plot_all(nhanes2, breaks = 30, ncol = 4)
+```
+
+```{r}
+impute.null <- mice(nhanes2, maxit = 0)
+meth <- impute.null$method
+meth["hgt"] <- "norm"
+meth
+post <- impute.null$post
+post["hgt"] <- "imp[[j]][,i] <- squeeze(imp[[j]][,i], c(1.397, 1.9304))"
+imp <- mice(nhanes2, method = meth, maxit = 20, m = 30, seed = 1, printFlag = FALSE)
+```
+
+We have $411$ observations with observed values on all $12$ variables. Also, $10$ observations for which on `WC` is missing and $7$ observations for which on `hgt` is missing. Interestingly, we can observe that there are $29$ observations for which on `chol`, `HDL` and `bili` are missing.
+
+As a matter of example, in the previous plot depicting the distribution of the observed data for the different variables, we could appreciate that using a normal distribution for the `hgt` variable is possibly not a completely unreasonable idea. Let us then change the default imputation method from `pmm` to `norm` for the variable `hgt`.
+
+However, we need to be careful, because we do not want to risk imputing a negative value for the height. With the below syntax all imputed values of `hgt` that are outside the interval `(min(nhanes2$hgt), max(nhanes2$hgt))`$ will be set to those limiting values. Note that I am unsure whether the DBP can be in the 10–40 range or above 160, but I just want to illustrate how to create bounds for the imputed values
