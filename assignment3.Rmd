@@ -67,42 +67,135 @@ kable(df, caption="Imputation with seed=2,3,4,5,6") %>%
   kable_styling(latex_options = "hold_position")
 ```
 
+\newpage
 
 ### **Answer** :
 
 ## d)
 (4 marks) Repeat the analysis with $M = 100$ with the same seeds. Would you prefer these analyses over those with $M = 5$? Explain why.
+
+```{r}
+pool1 <- pool(with(mice(nhanes, m = 100, printFlag = F, seed = 1), 
+                   lm(bmi ~ age + hyp + chl)))
+pool2 <- pool(with(mice(nhanes, m = 100, printFlag = F, seed = 2), 
+                   lm(bmi ~ age + hyp + chl)))
+pool3 <- pool(with(mice(nhanes, m = 100, printFlag = F, seed = 3), 
+                   lm(bmi ~ age + hyp + chl)))
+pool4 <- pool(with(mice(nhanes, m = 100, printFlag = F, seed = 4), 
+                   lm(bmi ~ age + hyp + chl)))
+pool5 <- pool(with(mice(nhanes, m = 100, printFlag = F, seed = 5), 
+                   lm(bmi ~ age + hyp + chl)))
+pool6 <- pool(with(mice(nhanes, m = 100, printFlag = F, seed = 6), 
+                   lm(bmi ~ age + hyp + chl)))
+
+parameters <- c("(Intercept)", "age", "hyp", "chl")
+df <- data.frame(parameters, pool1$pooled[,10], pool2$pooled[,10],
+                 pool3$pooled[,10], pool4$pooled[,10], 
+                 pool5$pooled[,10], pool6$pooled[,10])
+colnames(df) <- c("parameters", "seed=1", "seed=2", "seed=3", "seed=4",
+                  "seed=5", "seed=6")
+kable(df, caption="Imputation with seed=1,2,3,4,5,6 and M=100") %>%
+  kable_styling(latex_options = "hold_position")
+```
+
+The pooled estimates is more stable when the value of $M$ is higher. Thus, we would prefer $M=100$ than $M=5$
+
 \newpage
 
 # Q2.
 (15 marks) Each of the 100 datasets contained in the file dataex2.Rdata was generated
 in the following way 
 $$y_i|x_i\overset{\text{ind.}}{\sim} \text{N}(\beta_0+\beta_1x_i,1), \quad x_i\overset{\text{ind.}}{\sim}\text{Unif}(-1,1), \quad \beta_0=1, \quad \beta_1=3$$
-for $i = 1, \dots, 100$. Additionally, some of the responses were set to be missing using a MAR mechanism. The goal of this exercise is to study the effect that acknowledging/not acknowledging parameter uncertainty when performing step $1$ of multiple imputation might have on the coverage of the corresponding confidence intervals. Further suppose that the analysis of interest in step $2$ is to fit the regression model that was used to generate the data, i.e., a normal linear regression model where the response is $y$ and the covariate is $x$. With the aid of the \texttt{mice} package, calculate the empirical coverage probability of the $95\%$ confidence intervals for $\beta_1$ under the following two approaches: stochastic regression imputation and the corresponding bootstrap based version. Comment. For both approaches, please consider $M = 20$ and \texttt{seed=1}. \textbf{NOTE 1:} In order to calculate the empirical coverage probability, you only need to compute the proportion of the time (over the 100 intervals) that the interval contains the true value of the parameter. \textbf{NOTE 2:} The data are stored in an array structure such that, for instance, \texttt{dataex2[, , 1]}, corresponds to the first dataset (which has $100$ rows and $2$ columns, with the first column containing the values of $x$ and the second the values of $y$).
+for $i = 1, \dots, 100$. Additionally, some of the responses were set to be missing using a MAR mechanism. The goal of this exercise is to study the effect that acknowledging/not acknowledging parameter uncertainty when performing step $1$ of multiple imputation might have on the coverage of the corresponding confidence intervals. Further suppose that the analysis of interest in step $2$ is to fit the regression model that was used to generate the data, i.e., a normal linear regression model where the response is $y$ and the covariate is $x$. With the aid of the \texttt{mice} package, calculate the empirical coverage probability of the $95\%$ confidence intervals for $\beta_1$ under the following two approaches: stochastic regression imputation and the corresponding bootstrap based version. Comment. For both approaches, please consider $m = 20$ and \texttt{seed=1}. \textbf{NOTE 1:} In order to calculate the empirical coverage probability, you only need to compute the proportion of the time (over the 100 intervals) that the interval contains the true value of the parameter. \textbf{NOTE 2:} The data are stored in an array structure such that, for instance, \texttt{dataex2[, , 1]}, corresponds to the first dataset (which has $100$ rows and $2$ columns, with the first column containing the values of $x$ and the second the values of $y$).
+
+```{r}
+# initialize a counter
+count <- 0
+for (i in 1:nrow(dataex2)) {
+  #impute values for the ith dataset using M=20
+  impute.sri <- mice(dataex2[, , i], m = 20, method = "norm.nob", printFlag = F, seed = 1)
+  fit.sri <- with(impute.sri, lm(Y ~ X)) #step 2
+  pool.sri <- pool(fit.sri) # step 3
+  summary.sri <- summary(pool.sri, conf.int = TRUE)
+  if (summary.sri[2, 7] <= 3 & summary.sri[2, 8] >= 3) {
+  count <- count + 1 #add to the counter if the the value of beta1 is contained in the
+  #confidence interval
+  }
+}
+ecp.sri <- count/nrow(dataex2)
+cat("the proportion of the time for Stochastic Imputation is", ecp.sri)
+```
+
+```{r}
+# initialize a counter
+count <- 0
+for (i in 1:nrow(dataex2)) {
+  #impute values for the ith dataset, using m=20
+  impute.bootstrap <- mice(dataex2[,,i], m = 20, method = "norm.boot",
+                           printFlag = FALSE, seed = 1)
+  fit.bootstrap <- with(impute.bootstrap, lm(Y ~ X)) #step 2
+  pool.bootstrap <- pool(fit.bootstrap) # step 3
+  summary.bootstrap <- summary(pool.bootstrap, conf.int = TRUE)
+  if (summary.bootstrap[2, c(7)] <= 3 & summary.bootstrap[2, c(8)] >= 3) {
+    count = count + 1 #add to the counter if the true value of beta1 is contained in the
+  }
+}
+ecp.bootstrap <- count/nrow(dataex2)
+cat("the proportion of the time for Bootstrap is", ecp.bootstrap)
+```
 
 \newpage
 
 # Q3.
 (9 marks) Show that for a linear (in the coefficients) regression model, the following two strategies coincide:
 
-## a)
+(i) Computing the predicted values (point estimates) from each fitted model in step $2$ and then pooling them according to Rubin’s rule for point estimates (i.e., averaging the predicted values across the imputed datasets).
 
-Computing the predicted values (point estimates) from each fitted model in step $2$ and then pooling them according to Rubin’s rule for point estimates (i.e., averaging the predicted values across the imputed datasets).
+(ii) Pooling the regression coefficients from each fitted model in step $2$ using Rubin’s rule for point estimates and then computing the predicted values afterwards
+
 
 ### **Answer** :
 
+We consider a linear regression model given a dataset as $\{y_i,x_{1i},\dots,x_{ni}\}$
+\begin{equation*}
+  \begin{split}
+    y_i=\beta_0 + \beta_1x_{1i} + \cdots + \beta_nx_{ni} + \varepsilon_i,\quad\varepsilon_i\sim N(0,\sigma^2)
+  \end{split}
+\end{equation*}
 
-\newpage
+Now we look into Case (i), we compute the predicted values for each fitted model from step $2$. Then we obtain as below, 
+\begin{equation*}
+  \begin{split}
+    \hat{y}^{(m)}_i=\hat{\beta}^{(m)}_0 + \hat{\beta}^{(m)}_1x_{1i} + \cdots + \hat{\beta}^{(m)}_nx_{ni}
+  \end{split}
+\end{equation*}
 
-## b)
-Pooling the regression coefficients from each fitted model in step $2$ using Rubin’s rule for point estimates and then computing the predicted values afterwards
+Then we pool them according to Rubin's rule for point estimates.
+\begin{equation*}
+  \begin{split}
+    \Bar{y}_i&=\frac{1}{M}\sum^{M}_{i=1}\hat{y}^{(m)}\\
+    &=\frac{1}{M}\sum^{M}_{i=1}\bigg(\hat{\beta}^{(m)}_0 + \hat{\beta}^{(m)}_1x_{1i} + \cdots + \hat{\beta}^{(m)}_nx_{ni}\bigg) \\
+    &= \frac{1}{M}\sum^{M}_{i=1}\hat{\beta}^{(m)}_0+\frac{1}{M}\sum^{M}_{i=1}\hat{\beta}^{(m)}_1x_{1i}+\cdots+\frac{1}{M}\sum^{M}_{i=1}\hat{\beta}^{(m)}_nx_{ni}\\
+    &=\Bar{\beta_0}+\Bar{\beta_1}x_{1i}+\cdots+\Bar{\beta_n}x_{ni}
+  \end{split}
+\end{equation*}
 
-### **Answer** :
+Now, let us consider Case (ii) to validate if they coincide. We pool the regression coefficients from each fitted model in step $2$ using Rubin's rule for point estimates.
+\begin{equation*}
+  \begin{split}
+    \Bar{\beta}_0 &=\frac{1}{M}\sum^{M}_{i=1}\hat{\beta}^{(m)}_0 \\
+    &\vdots \\
+    \Bar{\beta}_n &=\frac{1}{M}\sum^{M}_{i=1}\hat{\beta}^{(m)}_n
+  \end{split}
+\end{equation*}
+Then we can compute the predicted values as follow
+\begin{equation*}
+  \begin{split}
+    \Bar{y}_i&=\Bar{\beta_0}+\Bar{\beta_1}x_{1i}+\cdots+\Bar{\beta_n}x_{ni}
+  \end{split}
+\end{equation*}
 
-```{r}
-
-```
-
+As shown above, the order of the computation of predicted values for each fitted model in step $2$ and pooling according to Rubin's rule for point estimates do not matter mathematically. Therefore, we conclude here by saying that both cases coincide.
 \newpage
 
 # Q4.
