@@ -11,18 +11,27 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 Sys.setlocale("LC_ALL", "English")
 library(maxLik)
+library(mice)
+library(knitr)
+library(kableExtra)
+
 load("dataex2.Rdata")
 load("dataex4.Rdata")
 load("NHANES2.Rdata")
 ```
 
 # Q1.
-Consider the \texttt{nhanes} dataset in mice. For more information please type help(\texttt{nhanes}) in the R console.
+Consider the `nhanes` dataset in mice. For more information please type help(`nhanes`) in the R console.
 
 ## a)
 (2 marks) What percentage of the cases is incomplete?
 
 ### **Answer** :
+
+```{r}
+cat("The percentage of incomplete case is",
+    (nrow(nhanes)-nrow(cc(nhanes)))*100/nrow(nhanes))
+```
 
 \newpage
 
@@ -30,6 +39,11 @@ Consider the \texttt{nhanes} dataset in mice. For more information please type h
 (4 marks) Impute the data with \texttt{mice} using the defaults with \texttt{seed=1}, in step 2 predict \texttt{bmi} from \texttt{age}, \texttt{hyp}, and \texttt{chl} by the normal linear regression model, and then pool the results. What are the proportions of variance due to the missing data for each parameter? Which parameters appear to be most affected by the nonresponse?
 
 ### **Answer** :
+
+```{r}
+pool1 <- pool(with(mice(nhanes, printFlag = F, seed = 1), lm(bmi ~ age + hyp + chl)))
+```
+
 
 \newpage
 
