@@ -15,7 +15,6 @@ library(mice)
 library(dplyr)
 library(knitr)
 library(kableExtra)
-
 load("dataex2.Rdata")
 load("dataex4.Rdata")
 load("NHANES2.Rdata")
@@ -204,15 +203,26 @@ The goal of this exercise is to study different ways of using \texttt{mice} when
 $$y_i=\beta_0+\beta_1x_{1i}+\beta_2x_{2i}+\beta_3x_{1i}x_{2i}+\varepsilon_i,\\ x_{1i}\overset{\text{iid}}{\sim}\text{N}(0,1), \quad x_{2i}\overset{\text{iid}}{\sim}\text{N}(1.5,1), \quad
 \varepsilon_i\overset{\text{iid}}{\sim}\text{N}(0,1)$$
 
-for $i = 1,\dots,1000, \beta_0 = 1.5, \beta_1 = 1, \beta_2 = 2$ and $\beta_3 = 1$. Additionally, missingness was imposed on $y$ and $x_1$ and so the interaction variable $x_1x_2$ also has missing values, although the missingness in this interaction variable is induced by the missing in the covariate $x_1$. In the following, please use $M = 50$ and \texttt{seed=1}.
+for $i = 1,\dots,1000$, $\beta_0 = 1.5$, $\beta_1 = 1$, $\beta_2 = 2$ and $\beta_3 = 1$. Additionally, missingness was imposed on $y$ and $x_1$ and so the interaction variable $x_1x_2$ also has missing values, although the missingness in this interaction variable is induced by the missing in the covariate $x_1$. In the following, please use $M = 50$ and \texttt{seed=1}.
+
+```{r}
+kable(head(dataex4), caption="dataex4 observation")  %>%
+  kable_styling(latex_options = "hold_position")
+```
+
 
 ## a)
-(6 marks) By only imputing the y and x1 variables in step $1$, provide the estimates of $\beta_1, \beta_2$, and $\beta_3$ along with $95\%$ confidence intervals. Comment. Note that this approach where the interaction variable is left outside the imputation process and calculated afterwards in the analysis model, is known as \textit{Impute, then transform}
+(6 marks) By only imputing the $y$ and $x_1$ variables in step $1$, provide the estimates of $\beta_1, \beta_2$, and $\beta_3$ along with $95\%$ confidence intervals. Comment. Note that this approach where the interaction variable is left outside the imputation process and calculated afterwards in the analysis model, is known as \textit{Impute, then transform}
 
 ### **Answer** :
 
 ```{r}
-head(dataex4)
+impute.sri <- mice(dataex4, m = 50, seed = 1, printFlag = FALSE)
+fit.sri <- with(impute.sri, lm(y ~ x1 + x2 + x1*x2))
+pool.sri <- pool(fit.sri)
+kable(summary(pool.sri, conf.int = TRUE)[, c(1,2,3,7,8)], 
+      caption = "Summary Statistics of Imputation of $y$ and $x_1$") %>%
+  kable_styling(latex_options = "hold_position")
 ```
 
 \newpage
@@ -222,12 +232,42 @@ head(dataex4)
 
 ### **Answer** :
 
+```{r}
+x1 <- dataex4$x1; x2 <- dataex4$x2; dataex4$x1x2 <- x1*x2
+impute.null <- mice(dataex4, maxit = 0)
+method <- impute.null$method
+method["x1x2"] <- "~I(x1*x2)"
+pred <- impute.null$predictorMatrix
+pred[c("x1", "x2"), "x1x2"] <- 0
+visit.seq <- impute.null$visitSequence
+visit.seq
+```
+
+```{r}
+impute.passive <- mice(dataex4, method = method, predictorMatrix = pred, 
+                visitSequence = visit.seq, m = 50, seed = 1, printFlag = FALSE)
+pool.passive <- pool(with(impute.passive, lm(y ~ x1 + x2 + x1*x2)))
+kable(summary(pool.passive, conf.int=TRUE)[,c(1,2,3,7,8)],
+      caption = "Summary Statistics of Imputation of $y$ and $x_1$") %>%
+  kable_styling(latex_options = "hold_position")
+```
+
 \newpage
 
 ## c)
-(10 marks) Now that you have already appended the interaction variable to the dataset, impute it as it was just another variable (or like any other variable) in the dataset and use this variable for the interaction term in step $2$. Provide the estimates of $\beta_1, \beta_2$ and $\beta_3$ along with $95\%$ confidence intervals. Comment.
+(10 marks) Now that you have already appended the interaction variable to the dataset, impute it as it was \textit{just another variable} (or like any other variable) in the dataset and use this variable for the interaction term in step $2$. Provide the estimates of $\beta_1, \beta_2$ and $\beta_3$ along with $95\%$ confidence intervals. Comment.
 
 ### **Answer** :
+
+```{r}
+impute.jav <- mice(dataex4, m = 50, seed = 1, printFlag = FALSE)
+fit.jav <- with(impute.jav, lm(y ~ x1 + x2 + x1x2))
+pool.jav <- pool(fit.jav)
+kable( summary(pool.jav, conf.int=TRUE)[, c(1,2,3,7,8)],
+      caption = "Summary Statistics of Imputation of $y$ and $x_1$") %>%
+  kable_styling(latex_options = "hold_position")
+```
+
 
 \newpage
 
@@ -235,6 +275,8 @@ head(dataex4)
 (6 marks) What is the obvious conceptual drawback of the \textit{just another variable} approach for imputing interactions?
 
 ### **Answer** :
+
+
 
 \newpage
 
@@ -261,6 +303,6 @@ Using multiple imputation and conducting all necessary checks, report your findi
 ### **Answer** :
 
 ```{r}
-
+nhanes2 <- NHANES2
 ```
 
