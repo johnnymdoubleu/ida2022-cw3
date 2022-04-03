@@ -3,8 +3,8 @@ title: "IDA Assignment 3"
 author: "Johnny Lee, s1687781"
 date: "8th April 2022"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -16,6 +16,7 @@ library(dplyr)
 library(knitr)
 library(kableExtra)
 library(JointAI)
+require(devtools)
 source_url("https://gist.githubusercontent.com/NErler/0d00375da460dd33839b98faeee2fdab/raw/c6f537ecf80eddcefd94992ec7926aa57d454536/propplot.R")
 
 load("dataex2.Rdata")
@@ -368,7 +369,7 @@ kable(df, caption="Imputation with various seed and m values") %>%
 
 ```{r}
 imp <- mice(nhanes2, method = meth, post = post, maxit = 20, 
-            m = 30, seed = 1, printFlag = FALSE)
+            m = 25, seed = 1, printFlag = FALSE)
 imp$loggedEvents
 ```
 
