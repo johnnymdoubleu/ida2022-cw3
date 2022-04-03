@@ -16,6 +16,7 @@ library(dplyr)
 library(knitr)
 library(kableExtra)
 library(JointAI)
+source_url("https://gist.githubusercontent.com/NErler/0d00375da460dd33839b98faeee2fdab/raw/c6f537ecf80eddcefd94992ec7926aa57d454536/propplot.R")
 
 load("dataex2.Rdata")
 load("dataex4.Rdata")
@@ -325,11 +326,70 @@ meth["hgt"] <- "norm"
 meth
 post <- impute.null$post
 post["hgt"] <- "imp[[j]][,i] <- squeeze(imp[[j]][,i], c(1.397, 1.9304))"
-imp <- mice(nhanes2, method = meth, maxit = 20, m = 30, seed = 1, printFlag = FALSE)
+# visSeq <- impute.null$visitSequence
+```
+```{r}
+seed1.5 <- pool(with(mice(nhanes2, methods = meth, post = post, maxit = 20,
+                          m = 5, seed = 1, printFlag = FALSE),
+                     lm(wgt ~ gender + age + hgt + WC)))
+seed1.10 <- pool(with(mice(nhanes2, methods = meth, post = post, maxit = 20,
+                          m = 10, seed = 1, printFlag = FALSE),
+                     lm(wgt ~ gender + age + hgt + WC)))
+seed1.20 <- pool(with(mice(nhanes2, methods = meth, post = post, maxit = 20,
+                          m = 20, seed = 1, printFlag = FALSE),
+                     lm(wgt ~ gender + age + hgt + WC)))
+seed1.25 <- pool(with(mice(nhanes2, methods = meth, post = post, maxit = 20,
+                          m = 30, seed = 1, printFlag = FALSE),
+                     lm(wgt ~ gender + age + hgt + WC)))
+
+seed2.5 <- pool(with(mice(nhanes2, methods = meth, post = post, maxit = 20,
+                          m = 5, seed = 2, printFlag = FALSE),
+                     lm(wgt ~ gender + age + hgt + WC)))
+seed2.10 <- pool(with(mice(nhanes2, methods = meth, post = post, maxit = 20,
+                          m = 10, seed = 2, printFlag = FALSE),
+                     lm(wgt ~ gender + age + hgt + WC)))
+seed2.20 <- pool(with(mice(nhanes2, methods = meth, post = post, maxit = 20,
+                          m = 20, seed = 2, printFlag = FALSE),
+                     lm(wgt ~ gender + age + hgt + WC)))
+seed2.25 <- pool(with(mice(nhanes2, methods = meth, post = post, maxit = 20,
+                          m = 30, seed = 2, printFlag = FALSE),
+                     lm(wgt ~ gender + age + hgt + WC)))
+
+parameters <- c("(Intercept)", "gender", "age", "hgt", "WC")
+df <- data.frame(parameters, seed1.5$pooled[,10], seed1.10$pooled[,10],
+                 seed1.20$pooled[,10], seed1.25$pooled[,10],
+                 seed2.5$pooled[,10], seed2.10$pooled[,10], 
+                 seed2.5$pooled[,10], seed2.25$pooled[,10])
+colnames(df) <- c("parameters", "seed1.5", "seed1.10", "seed1.20", "seed1.25",
+                  "seed2.5", "seed2.10", "seed2.20", "seed2.25")
+kable(df, caption="Imputation with various seed and m values") %>%
+  kable_styling(latex_options = "hold_position")
 ```
 
-We have $411$ observations with observed values on all $12$ variables. Also, $10$ observations for which on `WC` is missing and $7$ observations for which on `hgt` is missing. Interestingly, we can observe that there are $29$ observations for which on `chol`, `HDL` and `bili` are missing.
+```{r}
+imp <- mice(nhanes2, method = meth, post = post, maxit = 20, 
+            m = 30, seed = 1, printFlag = FALSE)
+imp$loggedEvents
+```
 
-As a matter of example, in the previous plot depicting the distribution of the observed data for the different variables, we could appreciate that using a normal distribution for the `hgt` variable is possibly not a completely unreasonable idea. Let us then change the default imputation method from `pmm` to `norm` for the variable `hgt`.
+```{r}
+plot(imp, layout=c(4,4))
+bwplot(imp)[c(2,4,5,6,7,8)]
+densityplot(imp)
+densityplot(imp,~hgt|gender, xlim = c(1, 2.2))
+densityplot(imp,~hgt|hypten, xlim = c(1, 2.2))
+propplot(imp)
+```
 
-However, we need to be careful, because we do not want to risk imputing a negative value for the height. With the below syntax all imputed values of `hgt` that are outside the interval `(min(nhanes2$hgt), max(nhanes2$hgt))`$ will be set to those limiting values. Note that I am unsure whether the DBP can be in the 10–40 range or above 160, but I just want to illustrate how to create bounds for the imputed values
+```{r}
+fit <- with(imp, lm(wgt ~ gender + age + hgt + WC))
+```
+
+
+We have $411$ observations with observed values on all $12$ variables. Also, $10$ observations for which on `WC` is missing, $6$ observations for which on `hgt` is missing Interestingly, we can observe that there are $29$ observations for which on `chol`, `HDL` and `bili` are missing.
+
+As a matter of example, in the previous plot depicting the distribution of the observed data for the different variables, we could appreciate that using a normal distribution for the `hgt` is possibly not a completely unreasonable idea. Let us then change the default imputation method from `pmm` to `norm` for the variable `hgt`.
+
+However, we need to be careful, because we do not want to risk imputing a negative value for the height. With the below syntax all imputed values of `hgt` that are outside the interval `(min(nhanes2$hgt), max(nhanes2$hgt))` will be set to those limiting values.
+
+<!-- In addition, we further scrutinise in the domain of biomedical, `chol` is the sum of `HDL` and `LDL`. Therefore we can conclude that the missingness depends on the value `HDL`. This is also evident where the number of missing values in `chol` and `HDL` is identical and they have similar looking density above. -->
