@@ -3,8 +3,8 @@ title: "IDA Assignment 3"
 author: "Johnny Lee, s1687781"
 date: "8th April 2022"
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -16,6 +16,7 @@ library(dplyr)
 library(knitr)
 library(kableExtra)
 library(JointAI)
+library(RColorBrewer)
 require(devtools)
 source_url("https://gist.githubusercontent.com/NErler/0d00375da460dd33839b98faeee2fdab/raw/c6f537ecf80eddcefd94992ec7926aa57d454536/propplot.R")
 
@@ -33,7 +34,7 @@ Consider the `nhanes` dataset in mice. For more information please type help(`nh
 ### **Answer** :
 
 ```{r}
-cat("The percentage of incomplete case is",
+cat("The percentage of incomplete cases is",
     (nrow(nhanes)-nrow(cc(nhanes)))*100/nrow(nhanes))
 ```
 
@@ -45,8 +46,8 @@ cat("The percentage of incomplete case is",
 ### **Answer** :
 
 ```{r}
-pool1 <- pool(with(mice(nhanes, printFlag = F, seed = 1), lm(bmi ~ age + hyp + chl)))
-kable(pool1$pooled[,c(1,3,7,8,10)], caption="Imputation with seed=1") %>%
+pool1 <- pool(with(mice(nhanes, printFlag = F, seed = 1), lm(bmi ~ as.factor(age) + hyp + chl)))
+kable(pool1$pooled[,c(1,3,7,8,10)], caption = "Imputation with seed=1") %>%
   kable_styling(latex_options = "hold_position")
 ```
 
@@ -340,7 +341,7 @@ seed1.20 <- pool(with(mice(nhanes2, methods = meth, post = post, maxit = 20,
                           m = 20, seed = 1, printFlag = FALSE),
                      lm(wgt ~ gender + age + hgt + WC)))
 seed1.25 <- pool(with(mice(nhanes2, methods = meth, post = post, maxit = 20,
-                          m = 30, seed = 1, printFlag = FALSE),
+                          m = 25, seed = 1, printFlag = FALSE),
                      lm(wgt ~ gender + age + hgt + WC)))
 
 seed2.5 <- pool(with(mice(nhanes2, methods = meth, post = post, maxit = 20,
@@ -353,14 +354,14 @@ seed2.20 <- pool(with(mice(nhanes2, methods = meth, post = post, maxit = 20,
                           m = 20, seed = 2, printFlag = FALSE),
                      lm(wgt ~ gender + age + hgt + WC)))
 seed2.25 <- pool(with(mice(nhanes2, methods = meth, post = post, maxit = 20,
-                          m = 30, seed = 2, printFlag = FALSE),
+                          m = 25, seed = 2, printFlag = FALSE),
                      lm(wgt ~ gender + age + hgt + WC)))
 
 parameters <- c("(Intercept)", "gender", "age", "hgt", "WC")
 df <- data.frame(parameters, seed1.5$pooled[,10], seed1.10$pooled[,10],
                  seed1.20$pooled[,10], seed1.25$pooled[,10],
                  seed2.5$pooled[,10], seed2.10$pooled[,10], 
-                 seed2.5$pooled[,10], seed2.25$pooled[,10])
+                 seed2.20$pooled[,10], seed2.25$pooled[,10])
 colnames(df) <- c("parameters", "seed1.5", "seed1.10", "seed1.20", "seed1.25",
                   "seed2.5", "seed2.10", "seed2.20", "seed2.25")
 kable(df, caption="Imputation with various seed and m values") %>%
