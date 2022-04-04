@@ -330,17 +330,25 @@ post <- impute.null$post
 post["hgt"] <- "imp[[j]][,i] <- squeeze(imp[[j]][,i], c(1.397, 1.9304))"
 # visSeq <- impute.null$visitSequence
 ```
+While inspecting the missing data pattern, we found $411$ observations with observed values on all $12$ variables. Also, $10$ observations for which on `WC` is missing, $6$ observations for which on `hgt` is missing Interestingly, we can observe that there are $29$ observations for which on `chol`, `HDL` and `bili` are missing.
+
+We can visualise the variables' distributions using `plot_all()`. In the plot above, depicting the distribution of the observed data for the different variables, we could appreciate that `hgt` following a normal distribution is possibly not a completely unreasonable idea. Let us then change the default from predictive mean matching method (`pmm`) to `norm` for the variable `hgt`.
+
+However, we need to be careful, because we do not want to risk imputing a negative value for the height. With the below syntax all imputed values of `hgt` that are outside the interval `(min(nhanes2$hgt), max(nhanes2$hgt))` will be set to those limiting values.
+
+Since our model is limited to this, $\text{wgt}=\beta_0+\beta_1\text{gender}+\beta_2\text{age}+\beta_3\text{hgt}+\beta_4\text{WC}+\varepsilon,\quad\varepsilon\sim N(0,\sigma^2).$. We will end our data preprocessing and proceed to the next them in tuning the hyperparameters for imputation
+
 ```{r}
-seed1.5 <- pool(with(mice(nhanes2, methods = meth, post = post, maxit = 20,
+seed1.5 <- pool(with(mice(nhanes2, methods = meth, post = post,
                           m = 5, seed = 1, printFlag = FALSE),
                      lm(wgt ~ gender + age + hgt + WC)))
-seed1.10 <- pool(with(mice(nhanes2, methods = meth, post = post, maxit = 20,
+seed1.10 <- pool(with(mice(nhanes2, methods = meth, post = post,
                           m = 10, seed = 1, printFlag = FALSE),
                      lm(wgt ~ gender + age + hgt + WC)))
-seed1.20 <- pool(with(mice(nhanes2, methods = meth, post = post, maxit = 20,
+seed1.20 <- pool(with(mice(nhanes2, methods = meth, post = post,
                           m = 20, seed = 1, printFlag = FALSE),
                      lm(wgt ~ gender + age + hgt + WC)))
-seed1.25 <- pool(with(mice(nhanes2, methods = meth, post = post, maxit = 20,
+seed1.25 <- pool(with(mice(nhanes2, methods = meth, post = post,
                           m = 25, seed = 1, printFlag = FALSE),
                      lm(wgt ~ gender + age + hgt + WC)))
 
@@ -356,25 +364,52 @@ seed2.20 <- pool(with(mice(nhanes2, methods = meth, post = post, maxit = 20,
 seed2.25 <- pool(with(mice(nhanes2, methods = meth, post = post, maxit = 20,
                           m = 25, seed = 2, printFlag = FALSE),
                      lm(wgt ~ gender + age + hgt + WC)))
-
-parameters <- c("(Intercept)", "gender", "age", "hgt", "WC")
-df <- data.frame(parameters, seed1.5$pooled[,10], seed1.10$pooled[,10],
-                 seed1.20$pooled[,10], seed1.25$pooled[,10],
-                 seed2.5$pooled[,10], seed2.10$pooled[,10], 
-                 seed2.20$pooled[,10], seed2.25$pooled[,10])
-colnames(df) <- c("parameters", "seed1.5", "seed1.10", "seed1.20", "seed1.25",
-                  "seed2.5", "seed2.10", "seed2.20", "seed2.25")
-kable(df, caption="Imputation with various seed and m values") %>%
-  kable_styling(latex_options = "hold_position")
+# parameters <- c("(Intercept)", "gender", "age", "hgt", "WC")
+# df <- data.frame(parameters, seed1.5$pooled[,10], seed1.10$pooled[,10],
+#                  seed1.20$pooled[,10], seed1.25$pooled[,10],
+#                  seed2.5$pooled[,10], seed2.10$pooled[,10], 
+#                  seed2.20$pooled[,10], seed2.25$pooled[,10])
+# colnames(df) <- c("parameters", "seed1.5", "seed1.10", "seed1.20", "seed1.25",
+#                   "seed2.5", "seed2.10", "seed2.20", "seed2.25")
+# kable(df, caption="Imputation with various seed and m values") %>%
+#   kable_styling(latex_options = "hold_position")
 ```
+```{r}
+kable(data.frame(summary(seed1.5, conf.int = TRUE)[, c(1, 2, 3, 7, 8)], 
+                 lambda = seed1.5$pooled[,10]), caption = "Seed=1 and m=5") %>%
+  kable_styling(latex_options = "hold_position")
+kable(data.frame(summary(seed1.10, conf.int = TRUE)[, c(1, 2, 3, 7, 8)], 
+                 lambda = seed1.10$pooled[,10]), caption = "Seed=1 and m=10") %>%
+  kable_styling(latex_options = "hold_position")
+kable(data.frame(summary(seed1.20, conf.int = TRUE)[, c(1, 2, 3, 7, 8)], 
+                 lambda = seed1.20$pooled[,10]), caption = "Seed=1 and m=20") %>%
+  kable_styling(latex_options = "hold_position")
+kable(data.frame(summary(seed1.25, conf.int = TRUE)[, c(1, 2, 3, 7, 8)], 
+                 lambda = seed1.25$pooled[,10]), caption = "Seed=1 and m=25") %>%
+  kable_styling(latex_options = "hold_position")
+kable(data.frame(summary(seed2.5, conf.int = TRUE)[, c(1, 2, 3, 7, 8)], 
+                 lambda = seed2.5$pooled[,10]), caption = "Seed=2 and m=5") %>%
+  kable_styling(latex_options = "hold_position")
+kable(data.frame(summary(seed2.10, conf.int = TRUE)[, c(1, 2, 3, 7, 8)], 
+                 lambda = seed2.10$pooled[,10]), caption = "Seed=2 and m=10") %>%
+  kable_styling(latex_options = "hold_position")
+kable(data.frame(summary(seed2.20, conf.int = TRUE)[, c(1, 2, 3, 7, 8)], 
+                 lambda = seed2.20$pooled[,10]), caption = "Seed=2 and m=20") %>%
+  kable_styling(latex_options = "hold_position")
+kable(data.frame(summary(seed2.25, conf.int = TRUE)[, c(1, 2, 3, 7, 8)], 
+                 lambda = seed2.25$pooled[,10]), caption = "Seed=2 and m=25") %>%
+  kable_styling(latex_options = "hold_position")
+
+```
+Looking at Tables above, we have the (pooled) estimates, standard errors, the confident intervals and lambda which get more stable as M increases and we can be more confident in any one specific run. Since we run the multiple imputation with a sufficiently large $M$, the results will with high probability only differ by a small amount. Thus we will choose `seed=1` with `M=25` and proceed to the multiple imputation.
 
 ```{r}
 imp <- mice(nhanes2, method = meth, post = post, maxit = 20, 
             m = 25, seed = 1, printFlag = FALSE)
 imp$loggedEvents
 ```
-
-```{r}
+We can also confirm through `loggedEvents` that no problems occurred during the imputation.
+```{r warning=FALSE, fig.height=4}
 plot(imp, layout=c(4,4))
 bwplot(imp)[c(2,4,5,6,7,8)]
 densityplot(imp)
@@ -383,15 +418,12 @@ densityplot(imp,~hgt|hypten, xlim = c(1, 2.2))
 propplot(imp)
 ```
 
+Now let us process the plots one by one.
+
 ```{r}
 fit <- with(imp, lm(wgt ~ gender + age + hgt + WC))
+pool <- pool(fit)
 ```
 
-
-We have $411$ observations with observed values on all $12$ variables. Also, $10$ observations for which on `WC` is missing, $6$ observations for which on `hgt` is missing Interestingly, we can observe that there are $29$ observations for which on `chol`, `HDL` and `bili` are missing.
-
-As a matter of example, in the previous plot depicting the distribution of the observed data for the different variables, we could appreciate that using a normal distribution for the `hgt` is possibly not a completely unreasonable idea. Let us then change the default imputation method from `pmm` to `norm` for the variable `hgt`.
-
-However, we need to be careful, because we do not want to risk imputing a negative value for the height. With the below syntax all imputed values of `hgt` that are outside the interval `(min(nhanes2$hgt), max(nhanes2$hgt))` will be set to those limiting values.
 
 <!-- In addition, we further scrutinise in the domain of biomedical, `chol` is the sum of `HDL` and `LDL`. Therefore we can conclude that the missingness depends on the value `HDL`. This is also evident where the number of missing values in `chol` and `HDL` is identical and they have similar looking density above. -->
