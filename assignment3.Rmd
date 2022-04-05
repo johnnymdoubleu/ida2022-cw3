@@ -476,13 +476,13 @@ $$
 \text{wgt}=-100.83781-1.36542\times\text{gender} -0.15556\times \text{age}+52.42865\times \text{hgt} + 1.02524\times\text{WC}
 $$
 We can also check that only the coefficient for `genderfemale` has a p-value greater than $0.05$. To this, we will check using Wald Test later for the importance of it.
-```{r fig.height=4}
+```{r fig.height=3.7}
 plot(fit$analyses[[1]]$fitted.values, residuals(fit$analyses[[1]]),
      xlab = "Fitted values", ylab = "Residuals")
 ```
 In this fitted values versus residuals plot we can observe that the points are spread equally and randomly. Thus, no obvious trend and we can believe that the linear assumption holds for this model. 
 
-```{r fig.height=4}
+```{r fig.height=3.7}
 qqnorm(rstandard(fit$analyses[[1]]), xlim = c(-4, 4), ylim = c(-6, 6))
 qqline(rstandard(fit$analyses[[1]]), col = 2)
 ```
