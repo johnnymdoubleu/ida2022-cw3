@@ -57,7 +57,7 @@ $$
 \text{B}=\frac{1}{M-1}\sum^{M}_{i=1}(\hat{\theta}^{(i)}-\hat{\theta}^{\text{MI}})^2 \\
 \bar{\text{U}}=\frac{1}{M}\sum^{m}_{i=1}\hat{\text{U}}^{(i)}
 $$
-With the above statistics, we can calculate the total variance, $V^{\text{MI}}=\bar{U}+(1+\frac{1}{M})B$. Since `mice()` provides a different ratio known as $\lambda$ where $\lambda=\frac{B+\frac{B}{N}}{V^{\text{MI}}}$.
+With the above statistics, we can calculate the total variance, $V^{\text{MI}}=\bar{U}+(1+\frac{1}{M})B$. Since `mice()` provides a different ratio known as $\lambda$ where $\lambda=\frac{B+\frac{B}{N}}{V^{\text{MI}}}$. In this setup, `bmi` is the $\theta$.
 
 From Table 1, we computed the pooled estimates, degree of freedom and lambda values. This `lambda` represents the proportions of variance due to the missing data for each parameter. We conclude that `age` is mostly affected by the nonresponse.
 
@@ -70,12 +70,13 @@ From Table 1, we computed the pooled estimates, degree of freedom and lambda val
 ### **Answer** :
 
 ```{r}
+#Compute pooled estimates for each seed
 pool2 <- pool(with(mice(nhanes, printFlag = F, seed = 2), lm(bmi ~ age + hyp + chl)))
 pool3 <- pool(with(mice(nhanes, printFlag = F, seed = 3), lm(bmi ~ age + hyp + chl)))
 pool4 <- pool(with(mice(nhanes, printFlag = F, seed = 4), lm(bmi ~ age + hyp + chl)))
 pool5 <- pool(with(mice(nhanes, printFlag = F, seed = 5), lm(bmi ~ age + hyp + chl)))
 pool6 <- pool(with(mice(nhanes, printFlag = F, seed = 6), lm(bmi ~ age + hyp + chl)))
-
+#tabulating the values we obtained from mice()
 parameters <- c("(Intercept)", "age", "hyp", "chl")
 df <- data.frame(parameters, pool2$pooled[,10], pool3$pooled[,10],
                  pool4$pooled[,10], pool5$pooled[,10], pool6$pooled[,10])
@@ -83,6 +84,8 @@ colnames(df) <- c("parameters", "seed=2", "seed=3", "seed=4", "seed=5", "seed=6"
 kable(df, caption = "Imputation with seed=2,3,4,5,6") %>%
   kable_styling(latex_options = "hold_position")
 ```
+
+Here we repeated the same step as Q1 b) with different seed. From Table 2, we can see that the most affected variables will change with different number of settings. For instance, in `seed=5`, `hyp` has the highest value of lambda whereas `seed=2,3 and 6` have `age` as the most affected variable. This is unstable throughout different seed because there percentage of imputation we found in Q1 a) is considerably high with $48\%$.
 
 \newpage
 
@@ -92,6 +95,7 @@ kable(df, caption = "Imputation with seed=2,3,4,5,6") %>%
 ### **Answer** :
 
 ```{r}
+#compute the pooled estimates from each seed with M=100
 pool1 <- pool(with(mice(nhanes, m = 100, printFlag = F, seed = 1), 
                    lm(bmi ~ age + hyp + chl)))
 pool2 <- pool(with(mice(nhanes, m = 100, printFlag = F, seed = 2), 
@@ -104,7 +108,7 @@ pool5 <- pool(with(mice(nhanes, m = 100, printFlag = F, seed = 5),
                    lm(bmi ~ age + hyp + chl)))
 pool6 <- pool(with(mice(nhanes, m = 100, printFlag = F, seed = 6), 
                    lm(bmi ~ age + hyp + chl)))
-
+#tabulating the values from mice()
 parameters <- c("(Intercept)", "age", "hyp", "chl")
 df <- data.frame(parameters, pool1$pooled[,10], pool2$pooled[,10],
                  pool3$pooled[,10], pool4$pooled[,10], 
@@ -115,7 +119,7 @@ kable(df, caption="Imputation with seed=1,2,3,4,5,6 and M=100") %>%
   kable_styling(latex_options = "hold_position")
 ```
 
-The pooled estimates is more stable when the value of $M$ is higher. Thus, we would prefer $M=100$ than $M=5$
+In Table 3, we computed the lambda and we can notice that `lambda` is more stable when the value of $M$ is higher. Thus, we would prefer $M=100$ than $M=5$. This is also evident in the equation where, if $M$ is high, we can reduce the values for $\bar{\text{U}}$ and $B$ and the total variance, $V^{\text{MI}}$. $M=100$ is also a reasonable choice for the size of this dataset as the number of observation is $25$. Hence, the time efficiency will not accounted for.
 
 \newpage
 
@@ -128,37 +132,40 @@ for $i = 1, \dots, 100$. Additionally, some of the responses were set to be miss
 ### **Answer** :
 
 ```{r}
-# initialize a counter
-count <- 0
+count <- 0 # initialize a counter
 for (i in 1:nrow(dataex2)) {
-  #impute values for the ith dataset using M=20
+  #perform SRI with m=20
   impute.sri <- mice(dataex2[, , i], m = 20, method = "norm.nob", printFlag = F, seed = 1)
   fit.sri <- with(impute.sri, lm(Y ~ X)) #step 2
   pool.sri <- pool(fit.sri) # step 3
   summary.sri <- summary(pool.sri, conf.int = TRUE)
   if (summary.sri[2, 7] <= 3 & summary.sri[2, 8] >= 3) {
-  count <- count + 1 #add to the counter if the the value of beta1 is contained in the
+  #increment the count if beta1 is contained in the confidence interval
+    count <- count + 1
   }
 }
-cat("the proportion of the time for Stochastic Imputation is", count/nrow(dataex2))
+cat("the empirical coverage probability for Stochastic Imputation is", count/nrow(dataex2))
 ```
 
 ```{r}
 # initialize a counter
 count <- 0
 for (i in 1:nrow(dataex2)) {
-  #impute values for the ith dataset, using m=20
+  #perform bootstrap imputation with m=20
   impute.bootstrap <- mice(dataex2[,,i], m = 20, method = "norm.boot",
                            printFlag = FALSE, seed = 1)
   fit.bootstrap <- with(impute.bootstrap, lm(Y ~ X)) #step 2
   pool.bootstrap <- pool(fit.bootstrap) # step 3
   summary.bootstrap <- summary(pool.bootstrap, conf.int = TRUE)
   if (summary.bootstrap[2, c(7)] <= 3 & summary.bootstrap[2, c(8)] >= 3) {
-    count = count + 1 #add to the counter if the true value of beta1 is contained in the
+    #increment the count if beta1 is contained in the confidence interval
+    count = count + 1
   }
 }
-cat("the proportion of the time for Bootstrap is", count/nrow(dataex2))
+cat("the empirical coverage probability for Bootstrap is", count/nrow(dataex2))
 ```
+
+We performed both stochastic imputation and bootstrap imputation to compute the empirical coverage probability. As a result we obtained $0.88$ and $0.95$ respectively. The reason behind this is that SRI does not take the variability of the function weight into account. This can result in the missing consideration on the uncertainty of the imputed values. Thus, we will have an improper multiple imputation and the confidence intervals based on the total variance can be narrow. For the bootstrap imputation, it is the proper multiple imputation and thus the confidence interval will be wider.
 
 \newpage
 
@@ -175,14 +182,14 @@ cat("the proportion of the time for Bootstrap is", count/nrow(dataex2))
 We consider a linear regression model given a dataset as $\{y_i,x_{1i},\dots,x_{ni}\}$
 \begin{equation*}
   \begin{split}
-    y_i=\beta_0 + \beta_1x_{1i} + \cdots + \beta_nx_{ni} + \varepsilon_i,\quad\varepsilon_i\sim N(0,\sigma^2)
+    y_i=\beta_0 + \beta_1x_{1i} + \cdots + \beta_nx_{ni} + \varepsilon_i,\quad\varepsilon_i\sim N(0,\sigma^2), \quad i=1,\dots,n
   \end{split}
 \end{equation*}
 
 Now we look into Case (i), we compute the predicted values for each fitted model from step $2$. Then we obtain as below, 
 \begin{equation*}
   \begin{split}
-    \hat{y}^{(m)}_i=\hat{\beta}^{(m)}_0 + \hat{\beta}^{(m)}_1x_{1i} + \cdots + \hat{\beta}^{(m)}_nx_{ni}
+    \hat{y}^{(m)}_i=\hat{\beta}^{(m)}_0 + \hat{\beta}^{(m)}_1x_{1i} + \cdots + \hat{\beta}^{(m)}_nx_{ni}, \quad i=1,\dots,n
   \end{split}
 \end{equation*}
 
@@ -192,7 +199,7 @@ Then we pool them according to Rubin's rule for point estimates.
     \Bar{y}_i&=\frac{1}{M}\sum^{M}_{i=1}\hat{y}^{(m)}\\
     &=\frac{1}{M}\sum^{M}_{i=1}\bigg(\hat{\beta}^{(m)}_0 + \hat{\beta}^{(m)}_1x_{1i} + \cdots + \hat{\beta}^{(m)}_nx_{ni}\bigg) \\
     &= \frac{1}{M}\sum^{M}_{i=1}\hat{\beta}^{(m)}_0+\frac{1}{M}\sum^{M}_{i=1}\hat{\beta}^{(m)}_1x_{1i}+\cdots+\frac{1}{M}\sum^{M}_{i=1}\hat{\beta}^{(m)}_nx_{ni}\\
-    &=\Bar{\beta_0}+\Bar{\beta_1}x_{1i}+\cdots+\Bar{\beta_n}x_{ni}
+    &=\Bar{\beta_0}+\Bar{\beta_1}x_{1i}+\cdots+\Bar{\beta_n}x_{ni}, \quad i=1,\dots,n
   \end{split}
 \end{equation*}
 
@@ -207,7 +214,7 @@ Now, let us consider Case (ii) to validate if they coincide. We pool the regress
 Then we can compute the predicted values as follow
 \begin{equation*}
   \begin{split}
-    \Bar{y}_i&=\Bar{\beta_0}+\Bar{\beta_1}x_{1i}+\cdots+\Bar{\beta_n}x_{ni}
+    \Bar{y}_i&=\Bar{\beta_0}+\Bar{\beta_1}x_{1i}+\cdots+\Bar{\beta_n}x_{ni}, \quad i=1,\dots,n
   \end{split}
 \end{equation*}
 
@@ -223,7 +230,7 @@ $$y_i=\beta_0+\beta_1x_{1i}+\beta_2x_{2i}+\beta_3x_{1i}x_{2i}+\varepsilon_i,\\ x
 for $i = 1,\dots,1000$, $\beta_0 = 1.5$, $\beta_1 = 1$, $\beta_2 = 2$ and $\beta_3 = 1$. Additionally, missingness was imposed on $y$ and $x_1$ and so the interaction variable $x_1x_2$ also has missing values, although the missingness in this interaction variable is induced by the missing in the covariate $x_1$. In the following, please use $M = 50$ and \texttt{seed=1}.
 
 ```{r}
-kable(head(dataex4), caption="dataex4 observation")  %>%
+kable(head(dataex4), caption = "first 6 values of dataex4")  %>%
   kable_styling(latex_options = "hold_position")
 ```
 
@@ -234,13 +241,17 @@ kable(head(dataex4), caption="dataex4 observation")  %>%
 ### **Answer** :
 
 ```{r}
+#perform sri with m=50
 impute.sri <- mice(dataex4, m = 50, seed = 1, printFlag = FALSE)
-fit.sri <- with(impute.sri, lm(y ~ x1 + x2 + x1*x2))
-pool.sri <- pool(fit.sri)
+fit.sri <- with(impute.sri, lm(y ~ x1 + x2 + x1*x2)) #step 2
+pool.sri <- pool(fit.sri) #step 3
 kable(summary(pool.sri, conf.int = TRUE)[, c(1,2,3,7,8)], 
       caption = "Summary Statistics of Imputation of $y$ and $x_1$") %>%
   kable_styling(latex_options = "hold_position")
 ```
+
+From Table 4, we can observe the missingness of the data. 
+Suppose we denote $\hat{\beta}_2$ as the estimated coefficient of $x_2$, the confidence interval contains the true values. On the other hand, for $x_1$ and $x_1x_2$ the true value is not contained within the confidence interval. This is because, there is no missing values for $x_2$ but in $x_1$. The corresponding $x_1x_2$ will also contain the missing value due to $x_1$. 
 
 \newpage
 
@@ -250,24 +261,31 @@ kable(summary(pool.sri, conf.int = TRUE)[, c(1,2,3,7,8)],
 ### **Answer** :
 
 ```{r}
+#store each columns
 x1 <- dataex4$x1; x2 <- dataex4$x2; dataex4$x1x2 <- x1*x2
+#perform the null imputaton with baseline
 impute.null <- mice(dataex4, maxit = 0)
 method <- impute.null$method
+#specify formula to calculate x1x2
 method["x1x2"] <- "~I(x1*x2)"
 pred <- impute.null$predictorMatrix
 pred[c("x1", "x2"), "x1x2"] <- 0
+#change visiting scheme
 visit.seq <- impute.null$visitSequence
 visit.seq
 ```
 
 ```{r}
+#performing passive imputation with m=50
 impute.passive <- mice(dataex4, method = method, predictorMatrix = pred, 
                 visitSequence = visit.seq, m = 50, seed = 1, printFlag = FALSE)
-pool.passive <- pool(with(impute.passive, lm(y ~ x1 + x2 + x1*x2)))
-kable(summary(pool.passive, conf.int=TRUE)[,c(1,2,3,7,8)],
+pool.passive <- pool(with(impute.passive, lm(y ~ x1 + x2 + x1*x2))) #step 2, 3
+kable(summary(pool.passive, conf.int = TRUE)[,c(1,2,3,7,8)],
       caption = "Summary Statistics of Imputation of $y$ and $x_1$") %>%
   kable_styling(latex_options = "hold_position")
 ```
+We performed \textit{passive imputation} and presented the `estimates`, `std.error` and the confidence intervals. As Q4 a), only $x_2$ contains the true value within the confidence interval whereas $x_1$ and $x_1x_2$ do not contain. However, we need to note that the estimates are closer to the confidence interval compared to the previous part.
+
 
 \newpage
 
@@ -277,14 +295,16 @@ kable(summary(pool.passive, conf.int=TRUE)[,c(1,2,3,7,8)],
 ### **Answer** :
 
 ```{r}
+#performing just anotehr variable imputation with m=50
 impute.jav <- mice(dataex4, m = 50, seed = 1, printFlag = FALSE)
-fit.jav <- with(impute.jav, lm(y ~ x1 + x2 + x1x2))
-pool.jav <- pool(fit.jav)
-kable( summary(pool.jav, conf.int=TRUE)[, c(1,2,3,7,8)],
+fit.jav <- with(impute.jav, lm(y ~ x1 + x2 + x1x2)) #step 2
+pool.jav <- pool(fit.jav) #step 3
+kable( summary(pool.jav, conf.int = TRUE)[, c(1,2,3,7,8)],
       caption = "Summary Statistics of Imputation of $y$ and $x_1$") %>%
   kable_styling(latex_options = "hold_position")
 ```
 
+We performed \textit{just another variable} imputation and presented the results in Table 7. This time, we observe that all confidence intervals of the coefficients includes the true values $\beta_0 = 1.5$, $\beta_1 = 1$, $\beta_2 = 2$ and $\beta_3 = 1$.
 
 \newpage
 
@@ -293,7 +313,7 @@ kable( summary(pool.jav, conf.int=TRUE)[, c(1,2,3,7,8)],
 
 ### **Answer** :
 
-The conceptual drawback of the \textit{just another variable} approach for imputing interaction is the imputation on $x_1x_2$ using the $x_1$ and $x_2$ from the observed dataset. As a result, this will result in the biasness as the unbiased estimator for the parameters from the regression will no longer hold.
+The conceptual drawback of the \textit{just another variable} approach for imputing interaction is the imputation on $x_1x_2$ is no using $x_1$ and $x_2$ from the observed dataset. Thus, the product of $x_1$ and $x_2$ is not equal to $x_1x_2$. As a result, this will result in the biasness as the unbiased estimator for the parameters from the regression will no longer hold.
 
 \newpage
 
@@ -319,24 +339,28 @@ Using multiple imputation and conducting all necessary checks, report your findi
 
 ### **Answer** :
 
-```{r}
+```{r fig.height=4}
 nhanes2 <- NHANES2
+#compute number of oberservation per pattern
 md_pattern(nhanes2, pattern = FALSE, color = c('#34111b', '#e30f41'))
 ```
 
-```{r}
+```{r fig.height=4}
 par(mar = c(3,3,2,1), mgp = c(2,0.6,0))
+#visaulise the distribution of each feature
 plot_all(nhanes2, breaks = 30, ncol = 4)
 ```
 
 ```{r}
+#compute dry set up
 impute.null <- mice(nhanes2, maxit = 0)
+#change default imputation method
 meth <- impute.null$method
 meth["hgt"] <- "norm"
 meth
 post <- impute.null$post
+#specifying the range of hgt
 post["hgt"] <- "imp[[j]][,i] <- squeeze(imp[[j]][,i], c(1.397, 1.9304))"
-# visSeq <- impute.null$visitSequence
 ```
 While inspecting the missing data pattern, we found $411$ observations with observed values on all $12$ variables. Also, $10$ observations for which on `WC` is missing, $6$ observations for which on `hgt` is missing Interestingly, we can observe that there are $29$ observations for which on `chol`, `HDL` and `bili` are missing.
 
@@ -347,6 +371,7 @@ However, we need to be careful, because we do not want to risk imputing a negati
 Since our model is limited to this, $\text{wgt}=\beta_0+\beta_1\text{gender}+\beta_2\text{age}+\beta_3\text{hgt}+\beta_4\text{WC}+\varepsilon,\quad\varepsilon\sim N(0,\sigma^2).$. We will end our data preprocessing and proceed to the next them in tuning the hyperparameters for imputation
 
 ```{r}
+#compute the pooled estimates with different seed and M values
 seed1.5 <- pool(with(mice(nhanes2, methods = meth, post = post,
                           m = 5, seed = 1, printFlag = FALSE),
                      lm(wgt ~ gender + age + hgt + WC)))
@@ -372,16 +397,8 @@ seed2.20 <- pool(with(mice(nhanes2, methods = meth, post = post, maxit = 20,
 seed2.25 <- pool(with(mice(nhanes2, methods = meth, post = post, maxit = 20,
                           m = 25, seed = 2, printFlag = FALSE),
                      lm(wgt ~ gender + age + hgt + WC)))
-# parameters <- c("(Intercept)", "gender", "age", "hgt", "WC")
-# df <- data.frame(parameters, seed1.5$pooled[,10], seed1.10$pooled[,10],
-#                  seed1.20$pooled[,10], seed1.25$pooled[,10],
-#                  seed2.5$pooled[,10], seed2.10$pooled[,10], 
-#                  seed2.20$pooled[,10], seed2.25$pooled[,10])
-# colnames(df) <- c("parameters", "seed1.5", "seed1.10", "seed1.20", "seed1.25",
-#                   "seed2.5", "seed2.10", "seed2.20", "seed2.25")
-# kable(df, caption="Imputation with various seed and m values") %>%
-#   kable_styling(latex_options = "hold_position")
 ```
+
 ```{r}
 kable(data.frame(summary(seed1.5, conf.int = TRUE)[, c(1, 2, 3, 7, 8)], 
                  lambda = seed1.5$pooled[,10]), caption = "Seed=1 and m=5") %>%
@@ -405,13 +422,15 @@ kable(data.frame(summary(seed2.20, conf.int = TRUE)[, c(1, 2, 3, 7, 8)],
                  lambda = seed2.20$pooled[,10]), caption = "Seed=2 and m=20") %>%
   kable_styling(latex_options = "hold_position")
 kable(data.frame(summary(seed2.25, conf.int = TRUE)[, c(1, 2, 3, 7, 8)], 
-                 lambda = seed2.25$pooled[,10]), caption = "Seed=2 and m=25") %>%
+                 lambda = seed2.25$pooled[,10]), 
+      caption = "Seed=2 and m=25") %>%
   kable_styling(latex_options = "hold_position")
 
 ```
 Looking at Tables above, we have the (pooled) estimates, standard errors, the confident intervals and lambda which get more stable as M increases and we can be more confident in any one specific run. Since we run the multiple imputation with a sufficiently large $M$, the results will with high probability only differ by a small amount. Thus we will choose `seed=1` with `M=25` and proceed to the multiple imputation.
 
 ```{r}
+#imputation with the chosen seed and M
 imp <- mice(nhanes2, method = meth, post = post, maxit = 20, 
             m = 25, seed = 1, printFlag = FALSE)
 imp$loggedEvents
@@ -447,27 +466,27 @@ However educ only contains $1$ missing variable and we can conclude that there i
 All together, we can confirm that the multiple imputation is successful and proceed to analysis of the imputed data. Since we set `M=25`, we will only look at the first case.
 
 ```{r}
+#fitting with given parameters
 fit <- with(imp, lm(wgt ~ gender + age + hgt + WC))
 summary(fit$analyses[[1]])
 ```
 
-Looking at the summary we obtained the estimates as 
+Looking at the summary we obtained the estimates as below,
 $$
 \text{wgt}=-100.83781-1.36542\times\text{gender} -0.15556\times \text{age}+52.42865\times \text{hgt} + 1.02524\times\text{WC}
 $$
 We can also check that only the coefficient for `genderfemale` has a p-value greater than $0.05$. To this, we will check using Wald Test later for the importance of it.
-```{r}
-comp1 <- complete(imp, 1)
+```{r fig.height=4}
 plot(fit$analyses[[1]]$fitted.values, residuals(fit$analyses[[1]]),
      xlab = "Fitted values", ylab = "Residuals")
 ```
 In this fitted values versus residuals plot we can observe that the points are spread equally and randomly. Thus, no obvious trend and we can believe that the linear assumption holds for this model. 
 
-```{r}
+```{r fig.height=4}
 qqnorm(rstandard(fit$analyses[[1]]), xlim = c(-4, 4), ylim = c(-6, 6))
 qqline(rstandard(fit$analyses[[1]]), col = 2)
 ```
-By observing the normal Q-Q plot, we do not see the deviance from the red dotted base line. Therefore, we can conclude that the data after imputation follows normal distribution and the normality assumption holds. Lastly, we will proceed to pooling the estimates with our imputed dataset.
+By observing the normal Q-Q plot, we do not see the deviance from the red dotted base line. Therefore, we can conclude that the data after imputation follows normal distribution and the normality assumption holds. Lastly, we will proceed to pooling the estimates with our imputed dataset. From Table 16, the summary statistics is provided for the pooled estimates.
 ```{r}
 pooled_ests <- pool(fit)
 kable(summary(pooled_ests, conf.int = TRUE)[c(1,2,6,7,8)], 
@@ -479,11 +498,12 @@ kable(summary(pooled_ests, conf.int = TRUE)[c(1,2,6,7,8)],
 kable(pool.r.squared(pooled_ests, adjusted = TRUE), caption = "") %>%
   kable_styling(latex_options = "hold_position")
 ```
-Looking at the Table, the adjusted $R^2$ values indicates good fit.
+Looking at the Table 17, the adjusted $R^2$ values indicates good fit.
 
-Now we conduct Wald Test to check the importance of the feature.
+Now we conduct Wald Test to check the importance of the features.
 
 ```{r}
+#performing wald test
 fit.no.WC <- with(imp, lm(wgt ~ gender + age + hgt ))
 fit.no.hgt<- with(imp, lm(wgt ~ gender + age + WC))
 fit.no.age <- with(imp, lm(wgt ~ gender + hgt + WC))
@@ -495,4 +515,4 @@ df <- data.frame(excluded.features, wald.stats)
 kable(df, caption = "Wald Test on each features") %>%
   kable_styling(latex_options = "hold_position")
 ```
-We conducted the Wald test by excluding each feature one by one and used `D1()`. From the Table, we can see that `gender` is the only feature having p-value greater than $0.05$. Although it is above $0.05$, we can still consider its important but limiting it into $0.1$ significance level. Thus, `WC`, `hgt` and `age` have more influence than `gender` here.
+We conducted the Wald test by excluding each feature one by one and used `D1()` to compute its value. From the Table, we can see that `gender` is the only feature having p-value greater than $0.05$. Although it is above $0.05$, we can still consider its important but limiting it into $0.1$ significance level. Thus, `WC`, `hgt` and `age` have more influence than `gender` here.
