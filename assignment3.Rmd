@@ -47,7 +47,7 @@ cat("The percentage of incomplete cases is",
 
 ```{r}
 pool1 <- pool(with(mice(nhanes, printFlag = F, seed = 1), 
-                   lm(bmi ~ age + hyp + chl)))
+                   lm(bmi ~ as.factor(age) + as.factor(hyp) + chl)))
 kable(pool1$pooled[,c(1,3,7,8,10)], caption = "Imputation with seed=1") %>%
   kable_styling(latex_options = "hold_position")
 ```
@@ -59,7 +59,7 @@ $$
 $$
 With the above statistics, we can calculate the total variance, $V^{\text{MI}}=\bar{U}+(1+\frac{1}{M})B$. Since `mice()` provides a different ratio known as $\lambda$ where $\lambda=\frac{B+\frac{B}{N}}{V^{\text{MI}}}$. In this setup, `bmi` is the $\theta$.
 
-From Table 1, we computed the pooled estimates, degree of freedom and lambda values. This `lambda` represents the proportions of variance due to the missing data for each parameter. We conclude that `age` is mostly affected by the nonresponse.
+Now to perform the above statistics, we first took `age` and `hyp` as categorical variables and assign them as factor. From Table 1, we computed the pooled estimates, degree of freedom and lambda values. This `lambda` represents the proportions of variance due to the missing data for each parameter. We can observe that`age` factors generally have higher $\lambda$ values than the others. Especially, `age(3)` had the highest value of $0.6819661$. We need to note that the intercept contains `age(1)` and `hyp(1)` but having the lowest $\lambda$ value of $0.2318567$. Hence, we conclude that `age` is mostly affected by the nonresponse.
 
 
 \newpage
@@ -71,13 +71,18 @@ From Table 1, we computed the pooled estimates, degree of freedom and lambda val
 
 ```{r}
 #Compute pooled estimates for each seed
-pool2 <- pool(with(mice(nhanes, printFlag = F, seed = 2), lm(bmi ~ age + hyp + chl)))
-pool3 <- pool(with(mice(nhanes, printFlag = F, seed = 3), lm(bmi ~ age + hyp + chl)))
-pool4 <- pool(with(mice(nhanes, printFlag = F, seed = 4), lm(bmi ~ age + hyp + chl)))
-pool5 <- pool(with(mice(nhanes, printFlag = F, seed = 5), lm(bmi ~ age + hyp + chl)))
-pool6 <- pool(with(mice(nhanes, printFlag = F, seed = 6), lm(bmi ~ age + hyp + chl)))
+pool2 <- pool(with(mice(nhanes, printFlag = F, seed = 2), 
+                   lm(bmi ~ as.factor(age) + as.factor(hyp) + chl)))
+pool3 <- pool(with(mice(nhanes, printFlag = F, seed = 3), 
+                   lm(bmi ~ as.factor(age) + as.factor(hyp) + chl)))
+pool4 <- pool(with(mice(nhanes, printFlag = F, seed = 4), 
+                   lm(bmi ~ as.factor(age) + as.factor(hyp) + chl)))
+pool5 <- pool(with(mice(nhanes, printFlag = F, seed = 5), 
+                   lm(bmi ~ as.factor(age) + as.factor(hyp) + chl)))
+pool6 <- pool(with(mice(nhanes, printFlag = F, seed = 6), 
+                   lm(bmi ~ as.factor(age) + as.factor(hyp) + chl)))
 #tabulating the values we obtained from mice()
-parameters <- c("(Intercept)", "age", "hyp", "chl")
+parameters <- c("(Intercept)", "age(2)", "age(3)","hyp(2)", "chl")
 df <- data.frame(parameters, pool2$pooled[,10], pool3$pooled[,10],
                  pool4$pooled[,10], pool5$pooled[,10], pool6$pooled[,10])
 colnames(df) <- c("parameters", "seed=2", "seed=3", "seed=4", "seed=5", "seed=6")
@@ -85,7 +90,7 @@ kable(df, caption = "Imputation with seed=2,3,4,5,6") %>%
   kable_styling(latex_options = "hold_position")
 ```
 
-Here we repeated the same step as Q1 b) with different seed. From Table 2, we can see that the most affected variables will change with different number of settings. For instance, in `seed=5`, `hyp` has the highest value of lambda whereas `seed=2,3 and 6` have `age` as the most affected variable. This is unstable throughout different seed because there percentage of imputation we found in Q1 a) is considerably high with $48\%$.
+Here we repeated the same step as Q1 b) with different seed. From Table 2, we can see that the most affected variables will change with different number of settings. For instance, in `seed=5`, `hyp(2)` has the highest $\lambda$ value of $0.5858550$ whereas `seed=2,3 and 6` have `age` factors as the most affected variable. This is unstable throughout different seed because there percentage of imputation we found in Q1 a) is considerably high with $48\%$.
 
 \newpage
 
@@ -97,29 +102,29 @@ Here we repeated the same step as Q1 b) with different seed. From Table 2, we ca
 ```{r}
 #compute the pooled estimates from each seed with M=100
 pool1 <- pool(with(mice(nhanes, m = 100, printFlag = F, seed = 1), 
-                   lm(bmi ~ age + hyp + chl)))
+                   lm(bmi ~ as.factor(age) + as.factor(hyp) + chl)))
 pool2 <- pool(with(mice(nhanes, m = 100, printFlag = F, seed = 2), 
-                   lm(bmi ~ age + hyp + chl)))
+                   lm(bmi ~ as.factor(age) + as.factor(hyp) + chl)))
 pool3 <- pool(with(mice(nhanes, m = 100, printFlag = F, seed = 3), 
-                   lm(bmi ~ age + hyp + chl)))
+                   lm(bmi ~ as.factor(age) + as.factor(hyp) + chl)))
 pool4 <- pool(with(mice(nhanes, m = 100, printFlag = F, seed = 4), 
-                   lm(bmi ~ age + hyp + chl)))
+                   lm(bmi ~ as.factor(age) + as.factor(hyp) + chl)))
 pool5 <- pool(with(mice(nhanes, m = 100, printFlag = F, seed = 5), 
-                   lm(bmi ~ age + hyp + chl)))
+                   lm(bmi ~ as.factor(age) + as.factor(hyp) + chl)))
 pool6 <- pool(with(mice(nhanes, m = 100, printFlag = F, seed = 6), 
-                   lm(bmi ~ age + hyp + chl)))
+                   lm(bmi ~ as.factor(age) + as.factor(hyp) + chl)))
 #tabulating the values from mice()
-parameters <- c("(Intercept)", "age", "hyp", "chl")
+parameters <- c("(Intercept)", "age(2)", "age(3)","hyp(2)", "chl")
 df <- data.frame(parameters, pool1$pooled[,10], pool2$pooled[,10],
                  pool3$pooled[,10], pool4$pooled[,10], 
                  pool5$pooled[,10], pool6$pooled[,10])
 colnames(df) <- c("parameters", "seed=1", "seed=2", "seed=3", "seed=4",
                   "seed=5", "seed=6")
-kable(df, caption="Imputation with seed=1,2,3,4,5,6 and M=100") %>%
+kable(df, caption = "Imputation with seed=1,2,3,4,5,6 and M=100") %>%
   kable_styling(latex_options = "hold_position")
 ```
 
-In Table 3, we computed the lambda and we can notice that `lambda` is more stable when the value of $M$ is higher. Thus, we would prefer $M=100$ than $M=5$. This is also evident in the equation where, if $M$ is high, we can reduce the values for $\bar{\text{U}}$ and $B$ and the total variance, $V^{\text{MI}}$. $M=100$ is also a reasonable choice for the size of this dataset as the number of observation is $25$. Hence, the time efficiency will not accounted for.
+In Table 3, we computed the $\lambda$ and we can notice that $\lambda$ is more stable when the value of $M$ is higher. Also, we can observe that `age(3)` has the highest value throughout different seeds. Thus, we would prefer $M=100$ than $M=5$. This is also evident from the equation in Q1 b) where, if $M$ is high, we can reduce the values for $\bar{\text{U}}$ and $B$ and the total variance, $V^{\text{MI}}$. $M=100$ is also a reasonable choice for the size of this dataset as the number of observation is $25$. Hence, the time efficiency will not accounted for.
 
 \newpage
 
@@ -250,8 +255,7 @@ kable(summary(pool.sri, conf.int = TRUE)[, c(1,2,3,7,8)],
   kable_styling(latex_options = "hold_position")
 ```
 
-From Table 4, we can observe the missingness of the data. 
-Suppose we denote $\hat{\beta}_2$ as the estimated coefficient of $x_2$, the confidence interval contains the true values. On the other hand, for $x_1$ and $x_1x_2$ the true value is not contained within the confidence interval. This is because, there is no missing values for $x_2$ but in $x_1$. The corresponding $x_1x_2$ will also contain the missing value due to $x_1$. 
+From Table 4, we can observe the missingness of the data. Looking at Table 5 now, the estimated coefficient of $x_2$, the confidence interval contains the true values. On the other hand, for $x_1$ and $x_1x_2$ the true value is not contained within the confidence interval. This is because, there is no missing values for $x_2$ but in $x_1$. The corresponding $x_1x_2$ will also contain the missing value due to $x_1$. 
 
 \newpage
 
@@ -284,7 +288,7 @@ kable(summary(pool.passive, conf.int = TRUE)[,c(1,2,3,7,8)],
       caption = "Summary Statistics of Imputation of $y$ and $x_1$") %>%
   kable_styling(latex_options = "hold_position")
 ```
-We performed \textit{passive imputation} and presented the `estimates`, `std.error` and the confidence intervals. As Q4 a), only $x_2$ contains the true value within the confidence interval whereas $x_1$ and $x_1x_2$ do not contain. However, we need to note that the estimates are closer to the confidence interval compared to the previous part.
+We performed \textit{passive imputation} and presented the `estimates`, `std.error` and the confidence intervals and showed in Table 6. As Q4 a), only $x_2$ contains the true value within the confidence interval whereas $x_1$ and $x_1x_2$ do not contain. However, we need to note that the estimates are closer to the confidence interval compared to the previous part.
 
 
 \newpage
@@ -304,7 +308,7 @@ kable( summary(pool.jav, conf.int = TRUE)[, c(1,2,3,7,8)],
   kable_styling(latex_options = "hold_position")
 ```
 
-We performed \textit{just another variable} imputation and presented the results in Table 7. This time, we observe that all confidence intervals of the coefficients includes the true values $\beta_0 = 1.5$, $\beta_1 = 1$, $\beta_2 = 2$ and $\beta_3 = 1$.
+We performed \textit{just another variable} imputation and presented the results in Table 7. This time, we observe that all confidence intervals of the coefficients include the true values $\beta_0 = 1.5$, $\beta_1 = 1$, $\beta_2 = 2$ and $\beta_3 = 1$.
 
 \newpage
 
@@ -313,7 +317,7 @@ We performed \textit{just another variable} imputation and presented the results
 
 ### **Answer** :
 
-The conceptual drawback of the \textit{just another variable} approach for imputing interaction is the imputation on $x_1x_2$ is no using $x_1$ and $x_2$ from the observed dataset. Thus, the product of $x_1$ and $x_2$ is not equal to $x_1x_2$. As a result, this will result in the biasness as the unbiased estimator for the parameters from the regression will no longer hold.
+The conceptual drawback of the \textit{just another variable} approach for imputing interaction is the imputation on $x_1x_2$ is not using $x_1$ and $x_2$ from the observed dataset. Thus, the product of $x_1$ and $x_2$ is not equal to $x_1x_2$. As a result, this will result in the biasness as the unbiased estimator for the parameters from the regression will no longer hold.
 
 \newpage
 
