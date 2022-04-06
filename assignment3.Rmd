@@ -3,8 +3,8 @@ title: "IDA Assignment 3"
 author: "Johnny Lee, s1687781"
 date: "8th April 2022"
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -46,8 +46,15 @@ cat("The percentage of incomplete cases is",
 ### **Answer** :
 
 ```{r}
+#data preprocessing
+nhanes$age <- as.factor(nhanes$age)
+nhanes$hyp <- as.factor(nhanes$hyp)
+```
+
+
+```{r}
 pool1 <- pool(with(mice(nhanes, printFlag = F, seed = 1), 
-                   lm(bmi ~ as.factor(age) + as.factor(hyp) + chl)))
+                   lm(bmi ~ age + hyp + chl)))
 kable(pool1$pooled[,c(1,3,7,8,10)], caption = "Imputation with seed=1") %>%
   kable_styling(latex_options = "hold_position")
 ```
@@ -59,7 +66,7 @@ $$
 $$
 With the above statistics, we can calculate the total variance, $V^{\text{MI}}=\bar{U}+(1+\frac{1}{M})B$. Since `mice()` provides a different ratio known as $\lambda$ where $\lambda=\frac{B+\frac{B}{N}}{V^{\text{MI}}}$. In this setup, `bmi` is the $\theta$.
 
-Now to perform the above statistics, we first took `age` and `hyp` as categorical variables and assign them as factor. From Table 1, we computed the pooled estimates, degree of freedom and lambda values. This `lambda` represents the proportions of variance due to the missing data for each parameter. We can observe that`age` factors generally have higher $\lambda$ values than the others. Especially, `age(3)` had the highest value of $0.6819661$. We need to note that the intercept contains `age(1)` and `hyp(1)` but having the lowest $\lambda$ value of $0.2318567$. Hence, we conclude that `age` is mostly affected by the nonresponse.
+Now to perform the above statistics, we first took `age` and `hyp` as categorical variables and assigned them to be factors. From Table 1, we computed the pooled estimates, degree of freedom and lambda values. This `lambda` represents the proportions of variance due to the missing data for each parameter. We can observe that`age` factors generally have higher $\lambda$ values than the others. Especially, `age(2)` had the highest value of $0.6107359$ and `hyp(2)` had the lowest value of $0.2635386$. We need to note that the intercept contains `age(1)` and `hyp(1)` and having the $\lambda$ value of $0.3225123$. Hence, we conclude that `age` is mostly affected by the nonresponse.
 
 
 \newpage
@@ -72,15 +79,15 @@ Now to perform the above statistics, we first took `age` and `hyp` as categorica
 ```{r}
 #Compute pooled estimates for each seed
 pool2 <- pool(with(mice(nhanes, printFlag = F, seed = 2), 
-                   lm(bmi ~ as.factor(age) + as.factor(hyp) + chl)))
+                   lm(bmi ~ age + hyp + chl)))
 pool3 <- pool(with(mice(nhanes, printFlag = F, seed = 3), 
-                   lm(bmi ~ as.factor(age) + as.factor(hyp) + chl)))
+                   lm(bmi ~ age + hyp + chl)))
 pool4 <- pool(with(mice(nhanes, printFlag = F, seed = 4), 
-                   lm(bmi ~ as.factor(age) + as.factor(hyp) + chl)))
+                   lm(bmi ~ age + hyp + chl)))
 pool5 <- pool(with(mice(nhanes, printFlag = F, seed = 5), 
-                   lm(bmi ~ as.factor(age) + as.factor(hyp) + chl)))
+                   lm(bmi ~ age + hyp + chl)))
 pool6 <- pool(with(mice(nhanes, printFlag = F, seed = 6), 
-                   lm(bmi ~ as.factor(age) + as.factor(hyp) + chl)))
+                   lm(bmi ~ age + hyp + chl)))
 #tabulating the values we obtained from mice()
 parameters <- c("(Intercept)", "age(2)", "age(3)","hyp(2)", "chl")
 df <- data.frame(parameters, pool2$pooled[,10], pool3$pooled[,10],
@@ -90,7 +97,7 @@ kable(df, caption = "Imputation with seed=2,3,4,5,6") %>%
   kable_styling(latex_options = "hold_position")
 ```
 
-Here we repeated the same step as Q1 b) with different seed. From Table 2, we can see that the most affected variables will change with different number of settings. For instance, in `seed=5`, `hyp(2)` has the highest $\lambda$ value of $0.5858550$ whereas `seed=2,3 and 6` have `age` factors as the most affected variable. This is unstable throughout different seed because there percentage of imputation we found in Q1 a) is considerably high with $48\%$.
+Here we repeated the same step as Q1 b) with different seed. From Table 2, we can see that the most affected variables will change with different number of settings. For instance, in `seed=2`, `hyp(2)` has the highest $\lambda$ value of $0.5160375$ whereas `seed=3,4 and 5` have `age` factors as the most affected variable. Thus, this is unstable throughout different seed values because the percentage of imputation we found in Q1 a) is considerably high with $48\%$.
 
 \newpage
 
@@ -102,17 +109,17 @@ Here we repeated the same step as Q1 b) with different seed. From Table 2, we ca
 ```{r}
 #compute the pooled estimates from each seed with M=100
 pool1 <- pool(with(mice(nhanes, m = 100, printFlag = F, seed = 1), 
-                   lm(bmi ~ as.factor(age) + as.factor(hyp) + chl)))
+                   lm(bmi ~ age + hyp + chl)))
 pool2 <- pool(with(mice(nhanes, m = 100, printFlag = F, seed = 2), 
-                   lm(bmi ~ as.factor(age) + as.factor(hyp) + chl)))
+                   lm(bmi ~ age + hyp + chl)))
 pool3 <- pool(with(mice(nhanes, m = 100, printFlag = F, seed = 3), 
-                   lm(bmi ~ as.factor(age) + as.factor(hyp) + chl)))
+                   lm(bmi ~ age + hyp + chl)))
 pool4 <- pool(with(mice(nhanes, m = 100, printFlag = F, seed = 4), 
-                   lm(bmi ~ as.factor(age) + as.factor(hyp) + chl)))
+                   lm(bmi ~ age + hyp + chl)))
 pool5 <- pool(with(mice(nhanes, m = 100, printFlag = F, seed = 5), 
-                   lm(bmi ~ as.factor(age) + as.factor(hyp) + chl)))
+                   lm(bmi ~ age + hyp + chl)))
 pool6 <- pool(with(mice(nhanes, m = 100, printFlag = F, seed = 6), 
-                   lm(bmi ~ as.factor(age) + as.factor(hyp) + chl)))
+                   lm(bmi ~ age + hyp + chl)))
 #tabulating the values from mice()
 parameters <- c("(Intercept)", "age(2)", "age(3)","hyp(2)", "chl")
 df <- data.frame(parameters, pool1$pooled[,10], pool2$pooled[,10],
@@ -124,7 +131,7 @@ kable(df, caption = "Imputation with seed=1,2,3,4,5,6 and M=100") %>%
   kable_styling(latex_options = "hold_position")
 ```
 
-In Table 3, we computed the $\lambda$ and we can notice that $\lambda$ is more stable when the value of $M$ is higher. Also, we can observe that `age(3)` has the highest value throughout different seeds. Thus, we would prefer $M=100$ than $M=5$. This is also evident from the equation in Q1 b) where, if $M$ is high, we can reduce the values for $\bar{\text{U}}$ and $B$ and the total variance, $V^{\text{MI}}$. $M=100$ is also a reasonable choice for the size of this dataset as the number of observation is $25$. Hence, the time efficiency will not accounted for.
+In Table 3, we computed the $\lambda$ and we can notice that $\lambda$ became more stable when the value of $M$ is higher. Also, we can observe that either `age(2)` or `age(3)` have the highest $\lambda$ throughout different seeds. Thus, we would prefer $M=100$ over $M=5$. This is also evident from the equation in Q1 b) where, if $M$ is high, we can reduce the values for $\bar{\text{U}}$ and $B$ and the total variance, $V^{\text{MI}}$. $M=100$ is also a reasonable choice for the size of this dataset as the number of observation is $25$. Hence, the time efficiency will not be affected significantly.
 
 \newpage
 
