@@ -3,8 +3,8 @@ title: "IDA Assignment 3"
 author: "Johnny Lee, s1687781"
 date: "8th April 2022"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
